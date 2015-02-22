@@ -1,71 +1,104 @@
-class Set
-  constructor: (eles...) ->
+Module = require('./Module')
+Enumerable = require('./Enumerable')
+LinkedList = require('./LinkedList')
+
+class Set extends Module
+  @include Enumerable
+
+  _calcKey: (item) ->
+    switch Module.getPrimitiveType(item)
+      when 'String', 'Number', 'Boolean', 'Null'
+        item
+
+      else
+        if item instanceof Set
+          item.toString()
+        else
+          item
+
+
+  constructor: (eles = []) ->
     @_hash = {}
-    @addAll(eles...)
+    @_size = 0
+
+    Object.defineProperty @, 'size',
+      get: -> @_size
+
+    @addAll(eles)
 
 
-  _each: (fn) ->
-    i = 0
+  add: (item) ->
+    key = @_calcKey(item)
+    return false if @_hash[key]
 
-    for key, value of @_hash
-      return unless fn(value, i)
-      i++
-      
+    @_hash[key] = item
+    @_size++
 
-  add: (ele) ->
-    @_hash[ele] = ele
+    true
 
 
-  addAll: (eles...) ->
-    for e in eles
-      @add(e)
+  addAll: (items) ->
+    items.forEach (item) =>
+      @add(item)
 
 
-  contains: (ele) ->
-    @_hash[ele] != undefined
+  clone: ->
+    set = new Set
+    @each (item) ->
+      set.add(item)
+
+    return set
+
+
+  contains: (item) -> @exist(item)
 
 
   each: (fn) ->
-    @_each (value, i) ->
-      fn(value, i)
+    @eachWhile (item, i) ->
+      fn(item, i)
       true
+
+
+  eachWhile: (fn) ->
+    for key, item of @_hash
+      return unless fn(item)
 
 
   equals: (other) ->
-    result = true
+    for key, item of @_hash
+      return false unless other.contains(item)
 
-    @_each (value) ->
-      return result = false unless other.contains(value)
-      true
+    true
 
-    return result
+
+  exist: (item) ->
+    key = @_calcKey(item)
+    @_hash[key] != undefined
+
+
+  forEach: (fn) -> @each(fn)
 
 
   intersect: (other) ->
-    set = new Set
+    set = new @constructor
 
-    @each (value) ->
-      set.add(value) if other.contains(value)
-
-    set
-
-
-  union: (other) ->
-    set = new Set(@toArray()...)
-
-    other.each (value) ->
-      set.add(value)
+    if @size <= other.size
+      @each (value) ->
+        set.add(value) if other.contains(value)
+    else
+      other.each (value) =>
+        set.add(value) if @contains(value)
 
     set
 
 
   remove: (ele) ->
-    removed = @_hash[ele]
-    delete @_hash[ele]
-    removed
+    key = @_calcKey(ele)
+    removeItem = @_hash[key]
+    delete @_hash[key]
+    @_size--
 
-  size: ->
-    Object.keys(@_hash).length
+    removeItem
 
 
   toArray: ->
@@ -78,11 +111,21 @@ class Set
 
 
   toString: ->
-    array = @toArray()
+    array = @toArray().sort()
 
     if array.length > 0
-      "[ #{@toArray().join(', ')} ]"
+      "[ #{array.join(', ')} ]"
     else
       "[ ]"
+
+
+  union: (other) ->
+    set = new @constructor(@toArray())
+
+    other.each (value) ->
+      set.add(value)
+
+    set
+
 
 module.exports = Set

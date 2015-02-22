@@ -54,15 +54,12 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	Function.prototype.property = function(prop, desc) {
-	  return Object.defineProperty(this.prototype, prop, desc);
-	};
-	
 	module.exports = {
 	  Graph: __webpack_require__(1),
-	  Set: __webpack_require__(2),
-	  OrderedSet: __webpack_require__(5),
-	  LinkedList: __webpack_require__(3)
+	  Enumerable: __webpack_require__(2),
+	  Set: __webpack_require__(3),
+	  OrderedSet: __webpack_require__(4),
+	  LinkedList: __webpack_require__(5)
 	};
 
 
@@ -70,148 +67,387 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Graph, OrderedSet;
+	var Graph, Module, OrderedSet, Set,
+	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+	  hasProp = {}.hasOwnProperty;
 	
-	OrderedSet = __webpack_require__(5);
+	Module = __webpack_require__(6);
 	
-	module.exports = Graph = (function() {
+	Set = __webpack_require__(3);
+	
+	OrderedSet = __webpack_require__(4);
+	
+	Graph = (function(superClass) {
+	  extend(Graph, superClass);
+	
 	  function Graph() {
-	    Object.defineProperty(this, '_nodes', {
-	      value: new OrderedSet
-	    });
+	    this._nodes = new OrderedSet;
 	    this._adj = {};
 	  }
 	
 	  Graph.prototype._addEdge = function(a, b) {
+	    if (!(this._nodes.contains(a) && this._nodes.contains(b))) {
+	      throw new Error("cannot connect edge " + a + " to " + b);
+	    }
 	    return this._adj[a].add(b);
 	  };
 	
-	  Graph.prototype.addNode = function(name, data) {
-	    if (data == null) {
-	      data = null;
-	    }
-	    this._nodes[name] = data;
-	    return this._adj[name] = new OrderedSet;
-	  };
-	
-	  Graph.prototype.addEdge = function(a, b, isDirected) {
-	    if (isDirected == null) {
-	      isDirected = true;
+	  Graph.prototype.addEdge = function(a, b, undirected) {
+	    if (undirected == null) {
+	      undirected = false;
 	    }
 	    this._addEdge(a, b);
-	    if (!isDirected) {
-	      return this._addEdge(b, a);
+	    if (undirected) {
+	      this._addEdge(b, a);
+	    }
+	    return this;
+	  };
+	
+	  Graph.prototype.addNode = function(name) {
+	    this._nodes.add(name);
+	    this._adj[name] = new OrderedSet;
+	    return this;
+	  };
+	
+	  Graph.prototype.addNodeAll = function(nodes) {
+	    nodes.forEach((function(_this) {
+	      return function(node) {
+	        return _this.addNode(node);
+	      };
+	    })(this));
+	    return this;
+	  };
+	
+	  Graph.prototype.getBipartiteCliquesA = function(targetNodes) {
+	    var clique, cliques, foundNodes, key, nodes, result;
+	    if (targetNodes == null) {
+	      targetNodes = this._nodes;
+	    }
+	    cliques = {};
+	    foundNodes = {};
+	    nodes = targetNodes._list;
+	    nodes.eachRange(nodes.head, nodes.tail.prev, (function(_this) {
+	      return function(a, i, cellA) {
+	        return nodes.eachRange(cellA, nodes.tail, function(b, j, cellB) {
+	          var clique, found, key;
+	          clique = _this._adj[a].intersect(_this._adj[b]);
+	          key = clique.toString();
+	          found = foundNodes[key] || new Set;
+	          if (cliques[key] == null) {
+	            cliques[key] = clique;
+	          }
+	          found.addAll([a, b]);
+	          return foundNodes[key] != null ? foundNodes[key] : foundNodes[key] = found;
+	        });
+	      };
+	    })(this));
+	    result = [];
+	    for (key in cliques) {
+	      clique = cliques[key];
+	      result.push({
+	        clique: clique,
+	        foundNodes: foundNodes[key]
+	      });
+	    }
+	    return result;
+	  };
+	
+	  Graph.prototype.getBipartiteCliquesB = function(targetNodes) {
+	    var clique, cliques, foundNodes, key, result;
+	    if (targetNodes == null) {
+	      targetNodes = this._nodes;
+	    }
+	    cliques = {};
+	    foundNodes = {};
+	    targetNodes.each((function(_this) {
+	      return function(r1, i) {
+	        return _this._adj[r1].each(function(d1, m) {
+	          return _this._adj[d1].each(function(r2, j) {
+	            var clique, found, key;
+	            if (!(i < j)) {
+	              return;
+	            }
+	            clique = new Set([d1]);
+	            _this._adj[r2].each(function(d2, n) {
+	              if (_this._adj[d2].contains(r1)) {
+	                return clique.add(d2);
+	              }
+	            });
+	            key = clique.toString();
+	            found = foundNodes[key] || new Set;
+	            if (cliques[key] == null) {
+	              cliques[key] = clique;
+	            }
+	            found.addAll([r1, r2]);
+	            return foundNodes[key] != null ? foundNodes[key] : foundNodes[key] = found;
+	          });
+	        });
+	      };
+	    })(this));
+	    result = [];
+	    for (key in cliques) {
+	      clique = cliques[key];
+	      result.push({
+	        clique: clique,
+	        foundNodes: foundNodes[key]
+	      });
+	    }
+	    return result;
+	  };
+	
+	  Graph.prototype.getNeighbors = function(node) {
+	    return this._adj[node];
+	  };
+	
+	  Graph.prototype.hasEdge = function(a, b) {
+	    if (this._adj[a] && this._adj[a].contains(b)) {
+	      return true;
+	    } else {
+	      return false;
 	    }
 	  };
 	
 	  Graph.prototype.hasNode = function(node) {
-	    return this._nodes.contains(node) !== void 0;
+	    return this._nodes.contains(node) !== false;
+	  };
+	
+	  Graph.prototype._walk = function(node, visited, callbacks) {
+	    var neighbors, postOrder, preOrder;
+	    visited[node] = true;
+	    neighbors = this._adj[node];
+	    preOrder = callbacks.preOrder, postOrder = callbacks.postOrder;
+	    if (preOrder) {
+	      if (!preOrder(node)) {
+	        return;
+	      }
+	    }
+	    neighbors.each((function(_this) {
+	      return function(dest) {
+	        if (!visited[dest]) {
+	          return _this._walk(dest, visited, callbacks);
+	        }
+	      };
+	    })(this));
+	    if (postOrder) {
+	      return postOrder(node);
+	    }
+	  };
+	
+	  Graph.prototype.walk = function(node, callbacks) {
+	    if (callbacks == null) {
+	      callbacks = {};
+	    }
+	    return this._walk(node, [], callbacks);
 	  };
 	
 	  return Graph;
 	
-	})();
+	})(Module);
+	
+	module.exports = Graph;
 
 
 /***/ },
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Set,
-	  slice = [].slice;
+	var Enumerable, Module;
 	
-	Set = (function() {
-	  function Set() {
-	    var eles;
-	    eles = 1 <= arguments.length ? slice.call(arguments, 0) : [];
+	Module = __webpack_require__(6);
+	
+	Enumerable = {
+	  all: function(fn) {
+	    var result;
+	    result = true;
+	    this.eachWhile(function(item) {
+	      if (!fn(item)) {
+	        return result = false;
+	      }
+	    });
+	    return result;
+	  },
+	  each: function(fn) {
+	    return this.eachWhile(function(item) {
+	      fn(item);
+	      return true;
+	    });
+	  },
+	  find: function(fn, ifnone) {
+	    var foundItem;
+	    foundItem = finone;
+	    this.eachWhile(function(item) {
+	      if (fn(item)) {
+	        foundItem = item;
+	        return false;
+	      }
+	      return true;
+	    });
+	    return foundItem;
+	  },
+	  findAll: function(fn) {
+	    var foundItems;
+	    foundItems = [];
+	    this.each(function(item) {
+	      if (fn(item)) {
+	        return foundItems.push(item);
+	      }
+	    });
+	    return foundItems;
+	  }
+	};
+	
+	module.exports = Enumerable;
+
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Enumerable, LinkedList, Module, Set,
+	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+	  hasProp = {}.hasOwnProperty;
+	
+	Module = __webpack_require__(6);
+	
+	Enumerable = __webpack_require__(2);
+	
+	LinkedList = __webpack_require__(5);
+	
+	Set = (function(superClass) {
+	  extend(Set, superClass);
+	
+	  Set.include(Enumerable);
+	
+	  Set.prototype._calcKey = function(item) {
+	    switch (Module.getPrimitiveType(item)) {
+	      case 'String':
+	      case 'Number':
+	      case 'Boolean':
+	      case 'Null':
+	        return item;
+	      default:
+	        if (item instanceof Set) {
+	          return item.toString();
+	        } else {
+	          return item;
+	        }
+	    }
+	  };
+	
+	  function Set(eles) {
+	    if (eles == null) {
+	      eles = [];
+	    }
 	    this._hash = {};
-	    this.addAll.apply(this, eles);
+	    this._size = 0;
+	    Object.defineProperty(this, 'size', {
+	      get: function() {
+	        return this._size;
+	      }
+	    });
+	    this.addAll(eles);
 	  }
 	
-	  Set.prototype._each = function(fn) {
-	    var i, key, ref, value;
-	    i = 0;
-	    ref = this._hash;
-	    for (key in ref) {
-	      value = ref[key];
-	      if (!fn(value, i)) {
-	        return;
-	      }
-	      i++;
+	  Set.prototype.add = function(item) {
+	    var key;
+	    key = this._calcKey(item);
+	    if (this._hash[key]) {
+	      return false;
 	    }
+	    this._hash[key] = item;
+	    this._size++;
+	    return true;
 	  };
 	
-	  Set.prototype.add = function(ele) {
-	    return this._hash[ele] = ele;
+	  Set.prototype.addAll = function(items) {
+	    return items.forEach((function(_this) {
+	      return function(item) {
+	        return _this.add(item);
+	      };
+	    })(this));
 	  };
 	
-	  Set.prototype.addAll = function() {
-	    var e, eles, j, len, results;
-	    eles = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-	    results = [];
-	    for (j = 0, len = eles.length; j < len; j++) {
-	      e = eles[j];
-	      results.push(this.add(e));
-	    }
-	    return results;
+	  Set.prototype.clone = function() {
+	    var set;
+	    set = new Set;
+	    this.each(function(item) {
+	      return set.add(item);
+	    });
+	    return set;
 	  };
 	
-	  Set.prototype.contains = function(ele) {
-	    return this._hash[ele] !== void 0;
+	  Set.prototype.contains = function(item) {
+	    return this.exist(item);
 	  };
 	
 	  Set.prototype.each = function(fn) {
-	    return this._each(function(value, i) {
-	      fn(value, i);
+	    return this.eachWhile(function(item, i) {
+	      fn(item, i);
 	      return true;
 	    });
 	  };
 	
-	  Set.prototype.equals = function(other) {
-	    var result;
-	    result = true;
-	    this._each(function(value) {
-	      if (!other.contains(value)) {
-	        return result = false;
+	  Set.prototype.eachWhile = function(fn) {
+	    var item, key, ref;
+	    ref = this._hash;
+	    for (key in ref) {
+	      item = ref[key];
+	      if (!fn(item)) {
+	        return;
 	      }
-	      return true;
-	    });
-	    return result;
+	    }
+	  };
+	
+	  Set.prototype.equals = function(other) {
+	    var item, key, ref;
+	    ref = this._hash;
+	    for (key in ref) {
+	      item = ref[key];
+	      if (!other.contains(item)) {
+	        return false;
+	      }
+	    }
+	    return true;
+	  };
+	
+	  Set.prototype.exist = function(item) {
+	    var key;
+	    key = this._calcKey(item);
+	    return this._hash[key] !== void 0;
+	  };
+	
+	  Set.prototype.forEach = function(fn) {
+	    return this.each(fn);
 	  };
 	
 	  Set.prototype.intersect = function(other) {
 	    var set;
-	    set = new Set;
-	    this.each(function(value) {
-	      if (other.contains(value)) {
-	        return set.add(value);
-	      }
-	    });
-	    return set;
-	  };
-	
-	  Set.prototype.union = function(other) {
-	    var set;
-	    set = (function(func, args, ctor) {
-	      ctor.prototype = func.prototype;
-	      var child = new ctor, result = func.apply(child, args);
-	      return Object(result) === result ? result : child;
-	    })(Set, this.toArray(), function(){});
-	    other.each(function(value) {
-	      return set.add(value);
-	    });
+	    set = new this.constructor;
+	    if (this.size <= other.size) {
+	      this.each(function(value) {
+	        if (other.contains(value)) {
+	          return set.add(value);
+	        }
+	      });
+	    } else {
+	      other.each((function(_this) {
+	        return function(value) {
+	          if (_this.contains(value)) {
+	            return set.add(value);
+	          }
+	        };
+	      })(this));
+	    }
 	    return set;
 	  };
 	
 	  Set.prototype.remove = function(ele) {
-	    var removed;
-	    removed = this._hash[ele];
-	    delete this._hash[ele];
-	    return removed;
-	  };
-	
-	  Set.prototype.size = function() {
-	    return Object.keys(this._hash).length;
+	    var key, removeItem;
+	    key = this._calcKey(ele);
+	    removeItem = this._hash[key];
+	    delete this._hash[key];
+	    this._size--;
+	    return removeItem;
 	  };
 	
 	  Set.prototype.toArray = function() {
@@ -225,28 +461,105 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  Set.prototype.toString = function() {
 	    var array;
-	    array = this.toArray();
+	    array = this.toArray().sort();
 	    if (array.length > 0) {
-	      return "[ " + (this.toArray().join(', ')) + " ]";
+	      return "[ " + (array.join(', ')) + " ]";
 	    } else {
 	      return "[ ]";
 	    }
 	  };
 	
+	  Set.prototype.union = function(other) {
+	    var set;
+	    set = new this.constructor(this.toArray());
+	    other.each(function(value) {
+	      return set.add(value);
+	    });
+	    return set;
+	  };
+	
 	  return Set;
 	
-	})();
+	})(Module);
 	
 	module.exports = Set;
 
 
 /***/ },
-/* 3 */
+/* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var Cell, LinkedList;
+	var LinkedList, OrderedSet, Set,
+	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+	  hasProp = {}.hasOwnProperty;
 	
-	Cell = (function() {
+	Set = __webpack_require__(3);
+	
+	LinkedList = __webpack_require__(5);
+	
+	OrderedSet = (function(superClass) {
+	  extend(OrderedSet, superClass);
+	
+	  function OrderedSet(eles) {
+	    if (eles == null) {
+	      eles = [];
+	    }
+	    this._cells = {};
+	    this._list = new LinkedList;
+	    OrderedSet.__super__.constructor.apply(this, arguments);
+	  }
+	
+	  OrderedSet.prototype.add = function(item) {
+	    var key;
+	    key = this._calcKey(item);
+	    if (this._hash[key]) {
+	      return false;
+	    }
+	    this._hash[key] = item;
+	    this._size++;
+	    this._cells[key] = this._list.push(item);
+	    return true;
+	  };
+	
+	  OrderedSet.prototype.eachWhile = function(fn) {
+	    return this._list.eachWhile(function(item, i, cell) {
+	      return fn(item, i, cell);
+	    });
+	  };
+	
+	  OrderedSet.prototype.remove = function(ele) {
+	    var key, removeItem;
+	    key = this._calcKey(ele);
+	    removeItem = this._hash[key];
+	    delete this._hash[key];
+	    this._size--;
+	    this._list.remove(this._cells[key]);
+	    delete this._cells[key];
+	    return removeItem;
+	  };
+	
+	  return OrderedSet;
+	
+	})(Set);
+	
+	module.exports = OrderedSet;
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Cell, Enumerable, LinkedList, Module,
+	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+	  hasProp = {}.hasOwnProperty;
+	
+	Module = __webpack_require__(6);
+	
+	Enumerable = __webpack_require__(2);
+	
+	Cell = (function(superClass) {
+	  extend(Cell, superClass);
+	
 	  function Cell(list, data1) {
 	    this.data = data1 != null ? data1 : null;
 	    this.prev = null;
@@ -258,11 +571,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  return Cell;
 	
-	})();
+	})(Module);
 	
-	LinkedList = (function() {
+	LinkedList = (function(superClass) {
+	  extend(LinkedList, superClass);
+	
+	  LinkedList.include(Enumerable);
+	
+	  LinkedList.alias('forEach', 'each');
+	
 	  function LinkedList(array) {
-	    var ele, j, len;
 	    if (array == null) {
 	      array = [];
 	    }
@@ -275,40 +593,64 @@ return /******/ (function(modules) { // webpackBootstrap
 	    this.head.next = this.tail;
 	    this.tail.prev = this.head;
 	    this.length = 0;
-	    for (j = 0, len = array.length; j < len; j++) {
-	      ele = array[j];
-	      this.push(ele);
-	    }
+	    array.forEach((function(_this) {
+	      return function(ele) {
+	        return _this.push(ele);
+	      };
+	    })(this));
 	  }
+	
+	  LinkedList.prototype.clone = function() {
+	    return new this.constructor(this);
+	  };
 	
 	  LinkedList.prototype.createCell = function(data) {
 	    return new Cell(this, data);
 	  };
 	
 	  LinkedList.prototype.each = function(fn) {
-	    var cell, i, results;
-	    cell = this.head.next;
+	    return this.eachRange(this.head, this.tail, fn);
+	  };
+	
+	  LinkedList.prototype.eachRange = function(startCell, endCell, fn) {
+	    return this.eachWhile(function(item, i, cell) {
+	      fn(item, i, cell);
+	      return true;
+	    }, startCell, endCell);
+	  };
+	
+	  LinkedList.prototype.eachWhile = function(fn, startCell, endCell) {
+	    var cell, i;
+	    if (startCell == null) {
+	      startCell = this.head;
+	    }
+	    if (endCell == null) {
+	      endCell = this.tail;
+	    }
+	    cell = startCell.next;
 	    i = 0;
-	    results = [];
-	    while (cell !== this.tail) {
-	      fn(cell.data, i);
+	    while (cell !== endCell) {
+	      if (!fn(cell.data, i, cell)) {
+	        return;
+	      }
+	      cell = cell.next;
 	      i++;
-	      results.push(cell = cell.next);
+	    }
+	  };
+	
+	  LinkedList.prototype.eachReverse = function(fn) {
+	    var cell, results;
+	    cell = this.tail.prev;
+	    results = [];
+	    while (cell !== this.head) {
+	      fn(cell.data, cell);
+	      results.push(cell = cell.prev);
 	    }
 	    return results;
 	  };
 	
-	  LinkedList.prototype.eachReverse = function(fn) {
-	    var cell, i, results;
-	    cell = this.tail.prev;
-	    i = this.length;
-	    results = [];
-	    while (cell !== this.head) {
-	      i--;
-	      fn(cell.data, i);
-	      results.push(cell = cell.prev);
-	    }
-	    return results;
+	  LinkedList.prototype.forEach = function(fn) {
+	    return this.each(fn);
 	  };
 	
 	  LinkedList.prototype.insertAfter = function(cell, newData) {
@@ -394,60 +736,64 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	  return LinkedList;
 	
-	})();
+	})(Module);
 	
 	module.exports = LinkedList;
 
 
 /***/ },
-/* 4 */,
-/* 5 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var LinkedList, OrderedSet, Set,
-	  extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-	  hasProp = {}.hasOwnProperty,
-	  slice = [].slice;
+	var Module, moduleKeywords,
+	  indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 	
-	Set = __webpack_require__(2);
+	moduleKeywords = ['extended', 'included'];
 	
-	LinkedList = __webpack_require__(3);
+	Module = (function() {
+	  function Module() {}
 	
-	OrderedSet = (function(superClass) {
-	  extend(OrderedSet, superClass);
-	
-	  function OrderedSet() {
-	    var eles;
-	    eles = 1 <= arguments.length ? slice.call(arguments, 0) : [];
-	    this._list = new LinkedList;
-	    OrderedSet.__super__.constructor.apply(this, arguments);
-	  }
-	
-	  OrderedSet.prototype.add = function(ele) {
-	    return this._hash[ele] = this._list.push(ele);
+	  Module.getPrimitiveType = function(obj) {
+	    return Object.prototype.toString.call(obj).slice(8, -1);
 	  };
 	
-	  OrderedSet.prototype._each = function(fn) {
-	    var i;
-	    i = 0;
-	    return this._list.each(function(data) {
-	      fn(data, i);
-	      return i++;
-	    });
+	  Module.extend = function(obj) {
+	    var key, ref, value;
+	    for (key in obj) {
+	      value = obj[key];
+	      if (indexOf.call(moduleKeywords, key) < 0) {
+	        this[key] = value;
+	      }
+	    }
+	    if ((ref = obj.extended) != null) {
+	      ref.apply(this);
+	    }
+	    return this;
 	  };
 	
-	  OrderedSet.prototype.remove = function(ele) {
-	    var removeCell;
-	    removeCell = OrderedSet.__super__.remove.apply(this, arguments);
-	    this._list.remove(removeCell);
-	    return removeCell.data;
+	  Module.include = function(obj) {
+	    var key, ref, value;
+	    for (key in obj) {
+	      value = obj[key];
+	      if (indexOf.call(moduleKeywords, key) < 0) {
+	        this.prototype[key] = value;
+	      }
+	    }
+	    if ((ref = obj.included) != null) {
+	      ref.apply(this);
+	    }
+	    return this;
 	  };
 	
-	  return OrderedSet;
+	  Module.alias = function(newName, original) {
+	    return this.prototype[newName] = this.prototype[original];
+	  };
 	
-	})(Set);
+	  return Module;
 	
-	module.exports = OrderedSet;
+	})();
+	
+	module.exports = Module;
 
 
 /***/ }

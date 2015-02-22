@@ -1,4 +1,7 @@
-class Cell
+Module = require('./Module')
+Enumerable = require('./Enumerable')
+
+class Cell extends Module
   constructor: (list, @data = null) ->
     @prev = null
     @next = null
@@ -7,7 +10,10 @@ class Cell
       value: list
 
 
-class LinkedList
+class LinkedList extends Module
+  @include Enumerable
+  @alias 'forEach', 'each'
+
   constructor: (array = []) ->
     Object.defineProperty @, 'head',
       value: @createCell(null)
@@ -19,8 +25,12 @@ class LinkedList
     @tail.prev = @head
     @length = 0
 
-    for ele in array
+    array.forEach (ele) =>
       @push(ele)
+
+
+  clone: ->
+    new @constructor(@)
 
 
   createCell: (data) ->
@@ -28,23 +38,36 @@ class LinkedList
 
 
   each: (fn) ->
-    cell = @head.next
+    @eachRange(@head, @tail, fn)
+
+
+  eachRange: (startCell, endCell, fn) ->
+    @eachWhile (item, i, cell) ->
+      fn(item, i, cell)
+      true
+    , startCell, endCell
+
+
+  eachWhile: (fn, startCell = @head, endCell = @tail) ->
+    cell = startCell.next
     i = 0
 
-    while cell != @tail
-      fn(cell.data, i)
-      i++
+    while cell != endCell
+      return unless fn(cell.data, i, cell)
       cell = cell.next
+      i++
 
 
   eachReverse: (fn) ->
     cell = @tail.prev
-    i = @length
 
     while cell != @head
-      i--
-      fn(cell.data, i)
+      fn(cell.data, cell)
       cell = cell.prev
+
+
+  forEach: (fn) ->
+    @each(fn)
 
 
   insertAfter: (cell, newData) ->

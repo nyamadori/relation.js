@@ -23,7 +23,7 @@ module.exports = (config) ->
     preprocessors:
       'src/**/*.coffee': ['webpack']
       'test/**/*.coffee': ['coffee']
-      'dist/relation.js': ['coverage', 'sourcemap']
+      'dist/relation.js': ['coverage']
 
     # test results reporter to use
     # possible values: 'dots', 'progress'
@@ -49,7 +49,7 @@ module.exports = (config) ->
 
     # start these browsers
     # available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome', 'Firefox', 'Safari']
+    browsers: ['Chrome']
 
     # Continuous Integration mode
     # if true, Karma captures browsers, runs the tests and exits

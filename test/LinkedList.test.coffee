@@ -15,6 +15,11 @@ describe 'LinkedList', ->
       list = new relation.LinkedList(array)
       checkConnection(list, array)
 
+    it 'can pass LinkedList', ->
+      orig = new relation.LinkedList([1, 2, 3])
+      list = new relation.LinkedList(orig)
+      checkConnection(list, [1, 2, 3])
+
 
   [ 'insertCellAfter', 'insertCellBefore' ].forEach (fn) ->
     describe "#{fn}", ->
