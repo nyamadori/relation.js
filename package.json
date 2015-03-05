@@ -23,7 +23,8 @@
     "karma-sourcemap-loader": "~0.3.3",
     "karma-coffee-preprocessor": "~0.2.1",
     "karma-firefox-launcher": "~0.1.4",
-    "karma-safari-launcher": "~0.1.1"
+    "karma-safari-launcher": "~0.1.1",
+    "lazy.js": "~0.4.0"
   },
   "scripts": {
     "test": "mocha"

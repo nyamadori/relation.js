@@ -10,8 +10,10 @@ module.exports = (config) ->
 
     # list of files / patterns to load in the browser
     files: [
+      'node_modules/lazy.js/lazy.js'
       'dist/relation.js'
       'test/**/*.coffee'
+      # 'benchmark/**/*.coffee'
     ]
 
     # list of files to exclude
@@ -23,16 +25,11 @@ module.exports = (config) ->
     preprocessors:
       'src/**/*.coffee': ['webpack']
       'test/**/*.coffee': ['coffee']
-      'dist/relation.js': ['coverage']
 
     # test results reporter to use
     # possible values: 'dots', 'progress'
     # available reporters: https://npmjs.org/browse/keyword/karma-reporter
-    reporters: ['progress', 'coverage']
-    
-    coverageReporter:
-      type : 'html'
-      dir : 'coverage/'
+    reporters: ['progress']
 
     # web server port
     port: 9876
@@ -49,7 +46,7 @@ module.exports = (config) ->
 
     # start these browsers
     # available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['Chrome']
+    browsers: ['Chrome', 'Safari']
 
     # Continuous Integration mode
     # if true, Karma captures browsers, runs the tests and exits
