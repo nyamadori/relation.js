@@ -13,7 +13,6 @@ module.exports = (config) ->
       'node_modules/lazy.js/lazy.js'
       'dist/relation.js'
       'test/**/*.coffee'
-      # 'benchmark/**/*.coffee'
     ]
 
     # list of files to exclude
@@ -23,8 +22,8 @@ module.exports = (config) ->
     # preprocess matching files before serving them to the browser
     # available preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors:
-      'src/**/*.coffee': ['webpack']
       'test/**/*.coffee': ['coffee']
+
 
     # test results reporter to use
     # possible values: 'dots', 'progress'

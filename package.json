@@ -27,7 +27,7 @@
     "lazy.js": "~0.4.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "karma start"
   },
   "repository": {
     "type": "git",

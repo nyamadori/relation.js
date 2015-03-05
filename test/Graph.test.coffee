@@ -1,3 +1,8 @@
+if typeof process == 'object'
+  # Node.js environment
+  {expect} = require('chai')
+  relation = require('../dist/relation')
+
 describe 'Graph', ->
   describe '#addEdge', ->
     beforeEach ->
@@ -165,7 +170,3 @@ describe 'Graph', ->
 
     it 'returns undefined', ->
       expect(@graph.getAdjacentNodes('d')).to.be.undefined
-
-
-
-
